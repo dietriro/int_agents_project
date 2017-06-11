@@ -13,6 +13,7 @@ import tensorflow as tf
 import json
 import sys
 from time import sleep
+import scipy.io as sio
 
 from SimulationEnvironment import SimulationEnvironment
 from ReplayBuffer import ReplayBuffer
@@ -28,26 +29,29 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
     BUFFER_SIZE = 100000
     BATCH_SIZE = 32
     GAMMA = 0.99
-    TAU = 0.001  # Target Network HyperParameters
-    LRA = 0.001  # Learning rate for Actor
-    LRC = 0.001  # Lerning rate for Critic
+    TAU = 0.05  # Target Network HyperParameters
+    LRA = 0.1  # Learning rate for Actor
+    LRC = 0.1  # Lerning rate for Critic
     
     action_dim = 2  # cmd_vel in linear.x and angular.z
-    state_dim = (64, 64, 1)  # Map
+    state_dim = 365  # Map
     
     np.random.seed(1337)
 
     vision = False
     
-    EXPLORE = 100000.
-    episode_count = 20
-    max_steps = 200
+    EXPLORE = 10000.
+    episode_count = 50
+    max_steps = 500
     reward = 0
     done = False
     step = 0
     epsilon = 1
     indicator = 0
 
+    loss_all = np.zeros([episode_count, 1])
+    reward_all = np.zeros([episode_count, 1])
+	
     # Tensorflow GPU optimization
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -64,15 +68,15 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
     env = SimulationEnvironment(goal)
 
     # Now load the weight
-    # print('Now we load the weight')
-    # try:
-    #     actor.model.load_weights('actormodel.h5')
-    #     critic.model.load_weights('criticmodel.h5')
-    #     actor.target_model.load_weights('actormodel.h5')
-    #     critic.target_model.load_weights('criticmodel.h5')
-    #     print('Weight load successfully')
-    # except:
-    #     print('Cannot find the weight')
+    print('Now we load the weight')
+    try:
+        actor.model.load_weights('actormodel.h5')
+        critic.model.load_weights('criticmodel.h5')
+        actor.target_model.load_weights('actormodel.h5')
+        critic.target_model.load_weights('criticmodel.h5')
+        print('Weight load successfully')
+    except:
+        print('Cannot find the weight')
     
     print('RL of Robot begins...')
     for i in range(episode_count):
@@ -80,12 +84,13 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
         print('Episode : ' + str(i) + ' Replay Buffer ' + str(buff.count()))
         
         env.reset()
-        
+
         sleep(0.5)
         
         env.step([0,0])
-        (s_t, r_t, done) = env.get_state_reward()
-        
+
+        (s_t, r_t, done) = env.get_state_reward_1d()
+        total_loss = 0.
         total_reward = 0.
         for j in range(max_steps):
             loss = 0
@@ -93,24 +98,24 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
             a_t = np.zeros(action_dim)
             noise_t = np.zeros(action_dim)
 
-            a_t_original = actor.model.predict(s_t.reshape((1, s_t.shape[0], s_t.shape[1], s_t.shape[2])))[0]
+            a_t_original = actor.model.predict(s_t)[0]
             
-            noise_t[0] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0], 0.0, 0.60, 0.30)
-            noise_t[1] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[1], 0.0, 0.60, 0.30)
+            noise_t[0] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0], 0.0, 0.90, 0.30)
+            noise_t[1] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[1], 0.0, 0.90, 0.30)
 
             # The following code do the stochastic brake
             # if random.random() <= 0.1:
             #    print('********Now we apply the brake***********')
             #    noise_t[0][2] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0][2],  0.2 , 1.00, 0.10)
             
-            print(a_t_original[1], noise_t[1])
+            # print(a_t_original[1], noise_t[1])
             
             a_t[0] = a_t_original[0] + noise_t[0]
             a_t[1] = a_t_original[1] + noise_t[1]
             
             env.step(a_t)
 
-            (s_t1, r_t, done) = env.get_state_reward()
+            (s_t1, r_t, done) = env.get_state_reward_1d()
 
             buff.add(s_t, a_t, r_t, s_t1, done)  # Add replay buffer
 
@@ -122,7 +127,10 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
             new_states = np.asarray([e[3] for e in batch])
             dones = np.asarray([e[4] for e in batch])
             y_t = np.asarray([e[1] for e in batch])
-            
+
+            states = states.reshape((states.shape[0], states.shape[2]))
+            new_states = new_states.reshape((new_states.shape[0], new_states.shape[2]))
+
             target_q_values = critic.target_model.predict([new_states, actor.target_model.predict(new_states)])
             
             for k in range(len(batch)):
@@ -139,10 +147,11 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
                 actor.target_train()
                 critic.target_train()
             
+            total_loss += loss
             total_reward += r_t
-            s_t = s_t1
+            s_t = s_t1.copy()
             
-            print('Episode', i, 'Step', step, 'Action', a_t, 'Reward', r_t, 'Loss', loss)
+            print('Episode [%i]  Step [%i]  Pose [%.2f, %.2f, %.2f]  Action [%.2f, %.2f]  Reward [%.2f]  Loss [%.2f]' % (i, step, env.pose[0], env.pose[1], env.pose[2], a_t[0], a_t[1], r_t, loss))
             
             step += 1
             if done:
@@ -151,18 +160,23 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
         if np.mod(i, 3) == 0:
             if (train_indicator):
                 print('Now we save model')
-                actor.model.save_weights('actormodel.h5', overwrite=True)
-                with open('actormodel.json', 'w') as outfile:
+                actor.model.save_weights('/home/robster/catkin_ws/src/int_agents_project/data/actormodel_empty_01.h5', overwrite=True)
+                with open('/home/robster/catkin_ws/src/int_agents_project/data/actormodel_empty_01.json', 'w') as outfile:
                     json.dump(actor.model.to_json(), outfile)
                 
-                critic.model.save_weights('criticmodel.h5', overwrite=True)
-                with open('criticmodel.json', 'w') as outfile:
+                critic.model.save_weights('/home/robster/catkin_ws/src/int_agents_project/data/criticmodel_empty_01.h5', overwrite=True)
+                with open('/home/robster/catkin_ws/src/int_agents_project/data/criticmodel_empty_01.json', 'w') as outfile:
                     json.dump(critic.model.to_json(), outfile)
-        
+
+        loss_all[i] = total_loss
+        reward_all[i] = total_reward
+
         print('TOTAL REWARD @ ' + str(i) + '-th Episode  : Reward ' + str(total_reward))
         print('Total Step: ' + str(step))
         print('')
     
+    sio.savemat('/home/robster/catkin_ws/src/int_agents_project/data/eval_01.mat' , {'loss': loss_all, 'reward': reward_all})
+
     # env.end()  # This is for shutting down TORCS
     print('Finished learning!')
 

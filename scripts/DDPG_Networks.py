@@ -1,6 +1,6 @@
 import numpy as np
 import math
-from keras.initializations import normal, identity
+# from keras.initializations import normal, identity
 from keras.models import Sequential, Model, model_from_json
 # from keras.engine.training import collect_trainable_weights
 from keras.layers import Dense, Flatten, Input, merge, Lambda, Dropout
@@ -10,8 +10,8 @@ from keras.optimizers import Adam
 import tensorflow as tf
 import keras.backend as K
 
-HIDDEN1_UNITS = 300
-HIDDEN2_UNITS = 600
+HIDDEN1_UNITS = 500
+HIDDEN2_UNITS = 1000
 
 
 class ActorNetwork(object):
@@ -43,27 +43,50 @@ class ActorNetwork(object):
             actor_target_weights[i] = self.TAU * actor_weights[i] + (1 - self.TAU)* actor_target_weights[i]
         self.target_model.set_weights(actor_target_weights)
 
+    # def create_actor_network(self, state_size, action_dim=6):
+    #     print('Building Actor Network')
+    #
+    #     S = Input(shape=state_size)
+    #     # Convolutional Layers
+    #     # c0 = Conv2D(16, 3, 3, activation='relu')(S)
+    #     # p0 = MaxPooling2D(pool_size=(2, 2))(c0)
+    #     c1 = Conv2D(32, 3, 3, activation='relu')(S)
+    #     p1 = MaxPooling2D(pool_size=(2, 2))(c1)
+    #     c2 = Conv2D(64, 3, 3, activation='relu')(p1)
+    #     p2 = MaxPooling2D(pool_size=(2, 2))(c2)
+    #     d0 = Dropout(0.25)(p2)
+    #     f0 = Flatten()(d0)
+    #     # Fully Connected Layers
+    #     h0 = Dense(HIDDEN1_UNITS, activation='relu')(f0)
+    #     h1 = Dense(HIDDEN2_UNITS, activation='relu')(h0)
+    #
+    #     V = Dense(action_dim, activation='tanh')(h1)
+    #
+    #     model = Model(input=S, output=V)
+    #
+    #     return model, model.trainable_weights, S
+
     def create_actor_network(self, state_size, action_dim=6):
         print('Building Actor Network')
-        
-        S = Input(shape=state_size)
+    
+        S = Input(shape=[state_size])
         # Convolutional Layers
         # c0 = Conv2D(16, 3, 3, activation='relu')(S)
         # p0 = MaxPooling2D(pool_size=(2, 2))(c0)
-        c1 = Conv2D(32, 3, 3, activation='relu')(S)
-        p1 = MaxPooling2D(pool_size=(2, 2))(c1)
-        c2 = Conv2D(64, 3, 3, activation='relu')(p1)
-        p2 = MaxPooling2D(pool_size=(2, 2))(c2)
-        d0 = Dropout(0.25)(p2)
-        f0 = Flatten()(d0)
+        # c1 = Conv2D(32, 3, 3, activation='relu')(S)
+        # p1 = MaxPooling2D(pool_size=(2, 2))(c1)
+        # c2 = Conv2D(64, 3, 3, activation='relu')(p1)
+        # p2 = MaxPooling2D(pool_size=(2, 2))(c2)
+        # d0 = Dropout(0.25)(p2)
+        # f0 = Flatten()(d0)
         # Fully Connected Layers
-        h0 = Dense(HIDDEN1_UNITS, activation='relu')(f0)
+        h0 = Dense(HIDDEN1_UNITS, activation='relu')(S)
         h1 = Dense(HIDDEN2_UNITS, activation='relu')(h0)
-        
-        V = Dense(action_dim, activation='tanh', init=lambda shape, name: normal(shape, scale=1e-4, name=name))(h1)
-        
+    
+        V = Dense(action_dim, activation='tanh')(h1)
+    
         model = Model(input=S, output=V)
-        
+    
         return model, model.trainable_weights, S
 
 
@@ -99,18 +122,18 @@ class CriticNetwork(object):
     def create_critic_network(self, state_size, action_dim):
         print('Building Critic Network')
 
-        S = Input(shape=state_size)
+        S = Input(shape=[state_size])
         # Convolutional Layers for
         # c0 = Conv2D(16, 3, 3, activation='relu')(S)
         # p0 = MaxPooling2D(pool_size=(2, 2))(c0)
-        c1 = Conv2D(32, 3, 3, activation='relu')(S)
-        p1 = MaxPooling2D(pool_size=(2, 2))(c1)
-        c2 = Conv2D(64, 3, 3, activation='relu')(p1)
-        p2 = MaxPooling2D(pool_size=(2, 2))(c2)
-        d0 = Dropout(0.25)(p2)
-        f0 = Flatten()(d0)
+        # c1 = Conv2D(32, 3, 3, activation='relu')(S)
+        # p1 = MaxPooling2D(pool_size=(2, 2))(c1)
+        # c2 = Conv2D(64, 3, 3, activation='relu')(p1)
+        # p2 = MaxPooling2D(pool_size=(2, 2))(c2)
+        # d0 = Dropout(0.25)(p2)
+        # f0 = Flatten()(d0)
         # Fully Connected Layers
-        h0 = Dense(HIDDEN1_UNITS, activation='relu')(f0)
+        h0 = Dense(HIDDEN1_UNITS, activation='relu')(S)
         h1 = Dense(HIDDEN2_UNITS, activation='relu')(h0)
         
         A = Input(shape=[action_dim], name='action2')

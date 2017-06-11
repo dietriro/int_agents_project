@@ -184,7 +184,7 @@ class SimulationEnvironment:
 
         while(not self.new_state):
             self.state_mutex.release()
-            sleep(0.1)
+            sleep(0.01)
             # r.sleep()
             self.state_mutex.acquire()
             i += 1
@@ -196,6 +196,28 @@ class SimulationEnvironment:
         self.state_mutex.release()
         
         return self.map.values.reshape((self.map.values.shape[0], self.map.values.shape[1], 1)), self.get_reward(), self.close_to_goal()
+
+    def get_state_reward_1d(self):
+        i = 0
+        r = rospy.Rate(10)  # 20hz
+        self.state_mutex.acquire()
+    
+        while (not self.new_state):
+            self.state_mutex.release()
+            sleep(0.01)
+            # r.sleep()
+            self.state_mutex.acquire()
+            i += 1
+            if i >= 50:
+                self.state_mutex.release()
+                return None
+    
+        self.new_state = False
+        self.state_mutex.release()
+        
+        state = np.concatenate((np.array(self.scan.ranges), self.pose, self.goal[:2]))
+    
+        return state.reshape((1, state.shape[0])), self.get_reward(), self.close_to_goal()
         
     def get_reward(self, d=10, a=4, v_back=4, range_threshold=0.5):
         if self.scan is None or self.pose is None or self.goal is None:
@@ -206,8 +228,8 @@ class SimulationEnvironment:
         reward = 0
         
         # Reward from distance to goal
-        print('pose: ', self.pose)
-        print('goal: ', self.goal)
+	#        print('pose: ', self.pose)
+        # print('goal: ', self.goal)
         reward += d*1/euclidean(self.pose[:2], self.goal[:2])
         
         # Reward for orientation compared to goal orientation
