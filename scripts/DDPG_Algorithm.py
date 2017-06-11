@@ -40,8 +40,8 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
     vision = False
     
     EXPLORE = 100000.
-    episode_count = 2000
-    max_steps = 100000
+    episode_count = 20
+    max_steps = 200
     reward = 0
     done = False
     step = 0
@@ -102,6 +102,8 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
             # if random.random() <= 0.1:
             #    print('********Now we apply the brake***********')
             #    noise_t[0][2] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0][2],  0.2 , 1.00, 0.10)
+            
+            print(a_t_original[1], noise_t[1])
             
             a_t[0] = a_t_original[0] + noise_t[0]
             a_t[1] = a_t_original[1] + noise_t[1]

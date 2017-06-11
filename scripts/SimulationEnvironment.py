@@ -79,7 +79,7 @@ class SimulationEnvironment:
         # self.map.save_map_to_img()
     
     def cb_scan_pose(self, scan, odom):
-        print('Got a scan/pose!')
+        # print('Got a scan/pose!')
         
         # Build RGB Image from map, sensor and pose data
         self.pose = get_numpy_pose(odom.pose.pose)
@@ -153,6 +153,7 @@ class SimulationEnvironment:
                 cmd_vel = Twist()
                 cmd_vel.linear.x = actions[0]
                 cmd_vel.angular.z = actions[1]
+                self.last_action = cmd_vel
                 self.pub_cmd_vel.publish(cmd_vel)
                 # Go one step further in simulation
                 step = rospy.ServiceProxy('/stage/step', Empty)
@@ -196,7 +197,7 @@ class SimulationEnvironment:
         
         return self.map.values.reshape((self.map.values.shape[0], self.map.values.shape[1], 1)), self.get_reward(), self.close_to_goal()
         
-    def get_reward(self, d=10, a=4, v_back=100, range_threshold=0.5):
+    def get_reward(self, d=10, a=4, v_back=4, range_threshold=0.5):
         if self.scan is None or self.pose is None or self.goal is None:
             print('No messages received yet')
             return None
@@ -220,9 +221,9 @@ class SimulationEnvironment:
         reward += 2 * np.pi - angular_error
         
         # Negative reward for driving backwards
-        # if self.last_action.linear.x < 0:
-        #     reward += self.last_action.linear.x * v_back
-        reward += 0.5 * v_back
+        if self.last_action is not None and self.last_action.linear.x < 0:
+            reward += self.last_action.linear.x * v_back
+        # reward += 0.5 * v_back
 
         # Reward for scan distances
         ranges = np.array(self.scan.ranges)

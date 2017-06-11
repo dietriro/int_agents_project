@@ -48,9 +48,9 @@ class ActorNetwork(object):
         
         S = Input(shape=state_size)
         # Convolutional Layers
-        c0 = Conv2D(16, 3, 3, activation='relu')(S)
-        p0 = MaxPooling2D(pool_size=(2, 2))(c0)
-        c1 = Conv2D(32, 3, 3, activation='relu')(p0)
+        # c0 = Conv2D(16, 3, 3, activation='relu')(S)
+        # p0 = MaxPooling2D(pool_size=(2, 2))(c0)
+        c1 = Conv2D(32, 3, 3, activation='relu')(S)
         p1 = MaxPooling2D(pool_size=(2, 2))(c1)
         c2 = Conv2D(64, 3, 3, activation='relu')(p1)
         p2 = MaxPooling2D(pool_size=(2, 2))(c2)
@@ -60,9 +60,9 @@ class ActorNetwork(object):
         h0 = Dense(HIDDEN1_UNITS, activation='relu')(f0)
         h1 = Dense(HIDDEN2_UNITS, activation='relu')(h0)
         
-        V = Dense(action_dim,activation='tanh',init=lambda shape, name: normal(shape, scale=1e-4, name=name))(h1)
+        V = Dense(action_dim, activation='tanh', init=lambda shape, name: normal(shape, scale=1e-4, name=name))(h1)
         
-        model = Model(input=S,output=V)
+        model = Model(input=S, output=V)
         
         return model, model.trainable_weights, S
 
@@ -101,9 +101,9 @@ class CriticNetwork(object):
 
         S = Input(shape=state_size)
         # Convolutional Layers for
-        c0 = Conv2D(16, 3, 3, activation='relu')(S)
-        p0 = MaxPooling2D(pool_size=(2, 2))(c0)
-        c1 = Conv2D(32, 3, 3, activation='relu')(p0)
+        # c0 = Conv2D(16, 3, 3, activation='relu')(S)
+        # p0 = MaxPooling2D(pool_size=(2, 2))(c0)
+        c1 = Conv2D(32, 3, 3, activation='relu')(S)
         p1 = MaxPooling2D(pool_size=(2, 2))(c1)
         c2 = Conv2D(64, 3, 3, activation='relu')(p1)
         p2 = MaxPooling2D(pool_size=(2, 2))(c2)
@@ -114,11 +114,11 @@ class CriticNetwork(object):
         h1 = Dense(HIDDEN2_UNITS, activation='relu')(h0)
         
         A = Input(shape=[action_dim], name='action2')
-        a1 = Dense(HIDDEN2_UNITS, activation='linear')(A)
+        a1 = Dense(HIDDEN2_UNITS, activation='relu')(A)
         
         h2 = merge([h1, a1], mode='sum')
         h3 = Dense(HIDDEN2_UNITS, activation='relu')(h2)
-        V = Dense(action_dim, activation='linear')(h3)
+        V = Dense(action_dim, activation='tanh')(h3)
         
         model = Model(input=[S, A], output=V)
         

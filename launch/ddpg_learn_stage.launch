@@ -19,7 +19,7 @@
     <remap from="base_scan" to="scan"/>
   </node>
 
-  <!--  ***************** Robot Model *****************  -->
+  <!--  ***************** Robot Model *****************  
   <include file="$(find turtlebot_bringup)/launch/includes/robot.launch.xml">
     <arg name="base" value="$(arg base)" />
     <arg name="stacks" value="$(arg stacks)" />
@@ -27,7 +27,7 @@
   </include>
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
     <param name="use_gui" value="false"/>
-  </node>
+  </node>-->
 
   <!-- Command Velocity multiplexer -->
   <node pkg="nodelet" type="nodelet" name="mobile_base_nodelet_manager" args="manager"/>

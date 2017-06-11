@@ -39,9 +39,10 @@ class Map:
         y = np.floor(y / self.resolution) + np.floor(self.origin[1] / self.resolution)
         
         if x >= self.size[0] or y >= self.size[1]:
-            print('Error, cell out of map bounds!')
-            # ToDo: Maybe increase map size at this point
-            return False
+            # print('Error, cell out of map bounds!')
+            # return False
+            x = np.clip(x, 0, 63)
+            y = np.clip(y, 0, 63)
     
         return int(x), int(y)
 
@@ -85,7 +86,7 @@ class Map:
         self.scan = scan
 
     def draw_robot_position(self, robot_pose, value=160):
-        print 'Drawing the robots positional triangle on the map...'
+        # print 'Drawing the robots positional triangle on the map...'
         
         # self.values = self.original_values.copy()
         
@@ -127,7 +128,7 @@ class Map:
         self.set_value_index(robot_point_indexes[robot_point_indexes.shape[0]-1, 0], robot_point_indexes[robot_point_indexes.shape[0]-1, 1], value)
 
     def draw_goal_position(self, goal, value=80):
-        print 'Drawing the goal position on the map...'
+        # print 'Drawing the goal position on the map...'
     
         # self.values = self.original_values.copy()
     
@@ -154,7 +155,7 @@ class Map:
         self.set_value_index(cross_indexes[3, 0], cross_indexes[3, 1], value)
 
     def draw_robot_scan(self, robot_pose, scan, value=254):
-        print 'Drawing the robots laserscan on the map...'
+        # print 'Drawing the robots laserscan on the map...'
     
         # self.values = self.original_values.copy()
         
@@ -246,7 +247,7 @@ class Map:
         img.save('/home/robin/catkin_ws/src/int_agents_project/data/' + file_name + '.png')
         # img.show()
     
-        print('Map saved successfully.')
+        # print('Map saved successfully.')
         
     # def check_area_for_obstacles(self, x, y, range):
     #
