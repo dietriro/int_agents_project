@@ -14,7 +14,6 @@ class Map:
     goal = None
     scan = None
     
-    
     def __init__(self, size, values=None, resolution=0.05, origin=(0.0, 0.0)):
         self.resolution = resolution
         self.origin = np.array(origin)
@@ -36,9 +35,9 @@ class Map:
         :param y: The y coordinate in world frame.
         :return: (x, y) Tuple of cell indexes in x and y direction within the map
         '''
-        x = np.ceil(x / self.resolution) + np.ceil(self.origin[0] / self.resolution)
-        y = np.ceil(y / self.resolution) + np.ceil(self.origin[1] / self.resolution)
-    
+        x = np.floor(x / self.resolution) + np.floor(self.origin[0] / self.resolution)
+        y = np.floor(y / self.resolution) + np.floor(self.origin[1] / self.resolution)
+        
         if x >= self.size[0] or y >= self.size[1]:
             print('Error, cell out of map bounds!')
             # ToDo: Maybe increase map size at this point
@@ -70,6 +69,7 @@ class Map:
         if x >= self.size[0] or y >= self.size[1]:
             print('Error, cell out of map bounds!')
             # ToDo: Maybe increase map size at this point
+            print(x, y)
             return False
         
         self.values[x, y] = value
@@ -182,6 +182,10 @@ class Map:
         
         if self.robot_pose is None or self.goal is None or self.scan is None:
             print('Error! Not all attributes have been set!')
+            print(self.robot_pose is None)
+            print(self.goal is None)
+            print(self.scan is None)
+
             return False
         
         self.values = self.original_values.copy()
@@ -190,6 +194,7 @@ class Map:
         self.draw_robot_position(self.robot_pose)
         self.draw_robot_scan(self.robot_pose, self.scan)
         
+        return True
 
     def covered_cells(self, start, end):
         """Cells covered by a ray from the start cell to the end cell.
@@ -241,7 +246,7 @@ class Map:
         img.save('/home/robin/catkin_ws/src/int_agents_project/data/' + file_name + '.png')
         # img.show()
     
-        print('Map saved successfully, program shutting down.')
+        print('Map saved successfully.')
         
     # def check_area_for_obstacles(self, x, y, range):
     #

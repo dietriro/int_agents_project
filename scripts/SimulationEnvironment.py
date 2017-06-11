@@ -44,15 +44,15 @@ class SimulationEnvironment:
     
     state_mutex = Lock()
     
-    def __init__(self):
+    def __init__(self, goal):
         ##### ROS #####
         # Initialize this node
         rospy.init_node('gather_data', anonymous=True)
     
         # Subscriber
         sub_sensor_data = rospy.Subscriber('/map', OccupancyGrid, self.cb_map)
-        sub_pose_data = rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.cb_goal)
-        sub_cmd_vel = rospy.Subscriber('/cmd_vel_mux/input/teleop', Twist, self.cb_cmd_vel)
+        # sub_pose_data = rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.cb_goal)
+        # sub_cmd_vel = rospy.Subscriber('/cmd_vel_mux/input/teleop', Twist, self.cb_cmd_vel)
 
         sub_scan = message_filters.Subscriber('/scan', LaserScan)
         sub_pose = message_filters.Subscriber('/base_pose_ground_truth', Odometry)
@@ -62,7 +62,10 @@ class SimulationEnvironment:
     
         # Publisher
         self.pub_map = rospy.Publisher('/ia/map', OccupancyGrid, queue_size=1)
-        
+        self.pub_cmd_vel = rospy.Publisher('/mobile_base/commands/velocity', Twist, queue_size=1)
+
+        self.goal = goal
+
     def cb_cmd_vel(self, msg):
         self.last_action = msg
         
@@ -71,6 +74,7 @@ class SimulationEnvironment:
             return
         self.map = Map((msg.info.width, msg.info.height), values=msg.data, resolution=msg.info.resolution,
                    origin=[msg.info.origin.position.x, msg.info.origin.position.y])
+        self.map.set_goal(self.goal)
         
         # self.map.save_map_to_img()
     
@@ -141,36 +145,58 @@ class SimulationEnvironment:
     
         print('Map saved successfully, program shutting down.')
         
-    def step(self, iterations=1):
+    def step(self, actions, iterations=1):
         for i in range(iterations):
-            rospy.wait_for_service('/step')
+            rospy.wait_for_service('/stage/step')
             try:
-                step = rospy.ServiceProxy('/step', Empty)
+                # Publish actions as cmd_vel to robot
+                cmd_vel = Twist()
+                cmd_vel.linear.x = actions[0]
+                cmd_vel.angular.z = actions[1]
+                self.pub_cmd_vel.publish(cmd_vel)
+                # Go one step further in simulation
+                step = rospy.ServiceProxy('/stage/step', Empty)
                 success = step()
                 return success
             except rospy.ServiceException, e:
                 print('Service call failed: %s' % e)
                 
-    def get_state(self):
+    def reset(self):
+        rospy.wait_for_service('/stage/reset_positions')
+        try:
+            step = rospy.ServiceProxy('/stage/reset_positions', Empty)
+            success = step()
+            return success
+        except rospy.ServiceException, e:
+            print('Service call failed: %s' % e)
+                
+    def close_to_goal(self, threshold=0.2):
+        if euclidean(self.pose[:2], self.goal[:2]) < threshold:
+            return True
+        else:
+            return False
+                
+    def get_state_reward(self):
         i = 0
-        r = rospy.Rate(20)  # 20hz
+        r = rospy.Rate(10)  # 20hz
         self.state_mutex.acquire()
 
         while(not self.new_state):
             self.state_mutex.release()
-            sleep(0.05)
+            sleep(0.1)
+            # r.sleep()
             self.state_mutex.acquire()
             i += 1
-            if i >= 20:
+            if i >= 50:
                 self.state_mutex.release()
                 return None
 
         self.new_state = False
         self.state_mutex.release()
         
-        return self.map.values
+        return self.map.values.reshape((self.map.values.shape[0], self.map.values.shape[1], 1)), self.get_reward(), self.close_to_goal()
         
-    def get_reward(self, d=10, a=4, v=3, range_threshold=0.5):
+    def get_reward(self, d=10, a=4, v_back=100, range_threshold=0.5):
         if self.scan is None or self.pose is None or self.goal is None:
             print('No messages received yet')
             return None
@@ -179,6 +205,8 @@ class SimulationEnvironment:
         reward = 0
         
         # Reward from distance to goal
+        print('pose: ', self.pose)
+        print('goal: ', self.goal)
         reward += d*1/euclidean(self.pose[:2], self.goal[:2])
         
         # Reward for orientation compared to goal orientation
@@ -193,8 +221,9 @@ class SimulationEnvironment:
         
         # Negative reward for driving backwards
         # if self.last_action.linear.x < 0:
-        reward += 0.5 * v
-        
+        #     reward += self.last_action.linear.x * v_back
+        reward += 0.5 * v_back
+
         # Reward for scan distances
         ranges = np.array(self.scan.ranges)
         short_ranges = range_threshold-ranges[ranges<range_threshold]
