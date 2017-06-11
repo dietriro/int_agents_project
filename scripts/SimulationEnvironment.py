@@ -44,7 +44,9 @@ class SimulationEnvironment:
     
     state_mutex = Lock()
     
-    def __init__(self, goal):
+    map_state = None
+    
+    def __init__(self, goal, map_state=False):
         ##### ROS #####
         # Initialize this node
         rospy.init_node('gather_data', anonymous=True)
@@ -65,6 +67,7 @@ class SimulationEnvironment:
         self.pub_cmd_vel = rospy.Publisher('/mobile_base/commands/velocity', Twist, queue_size=1)
 
         self.goal = goal
+        self.map_state = map_state
 
     def cb_cmd_vel(self, msg):
         self.last_action = msg
@@ -85,7 +88,7 @@ class SimulationEnvironment:
         self.pose = get_numpy_pose(odom.pose.pose)
         self.scan = scan
         
-        if self.map is not None:
+        if self.map is not None and self.map_state:
             self.map.set_robot_position(self.pose)
             self.map.set_scan(self.scan)
             

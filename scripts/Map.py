@@ -244,7 +244,7 @@ class Map:
         # Save map data to image
         img.putdata(self.values.flatten(), 1, 0)
         # Save image to disk
-        img.save('/home/robster/catkin_ws/src/int_agents_project/data/' + file_name + '.png')
+        img.save('/home/robin/catkin_ws/src/int_agents_project/data/' + file_name + '.png')
         # img.show()
     
         # print('Map saved successfully.')

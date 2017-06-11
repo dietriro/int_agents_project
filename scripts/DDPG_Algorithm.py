@@ -29,9 +29,9 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
     BUFFER_SIZE = 100000
     BATCH_SIZE = 32
     GAMMA = 0.99
-    TAU = 0.05  # Target Network HyperParameters
-    LRA = 0.1  # Learning rate for Actor
-    LRC = 0.1  # Lerning rate for Critic
+    TAU = 0.02  # Target Network HyperParameters
+    LRA = 0.01  # Learning rate for Actor
+    LRC = 0.01  # Lerning rate for Critic
     
     action_dim = 2  # cmd_vel in linear.x and angular.z
     state_dim = 365  # Map
@@ -65,18 +65,18 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
     
     # Generate a new stage environment
     # ToDo: add env
-    env = SimulationEnvironment(goal)
+    env = SimulationEnvironment(goal, map_state=False)
 
-    # Now load the weight
-    print('Now we load the weight')
-    try:
-        actor.model.load_weights('actormodel.h5')
-        critic.model.load_weights('criticmodel.h5')
-        actor.target_model.load_weights('actormodel.h5')
-        critic.target_model.load_weights('criticmodel.h5')
-        print('Weight load successfully')
-    except:
-        print('Cannot find the weight')
+    # # Now load the weight
+    # print('Now we load the weight')
+    # try:
+    #     actor.model.load_weights('actormodel.h5')
+    #     critic.model.load_weights('criticmodel.h5')
+    #     actor.target_model.load_weights('actormodel.h5')
+    #     critic.target_model.load_weights('criticmodel.h5')
+    #     print('Weight load successfully')
+    # except:
+    #     print('Cannot find the weight')
     
     print('RL of Robot begins...')
     for i in range(episode_count):
@@ -85,7 +85,7 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
         
         env.reset()
 
-        sleep(0.5)
+        sleep(2)
         
         env.step([0,0])
 
@@ -112,6 +112,10 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
             
             a_t[0] = a_t_original[0] + noise_t[0]
             a_t[1] = a_t_original[1] + noise_t[1]
+            
+            r = random.random()
+            if r < 0.3-i/episode_count:
+                a_t[0] = 0
             
             env.step(a_t)
 
@@ -160,12 +164,12 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
         if np.mod(i, 3) == 0:
             if (train_indicator):
                 print('Now we save model')
-                actor.model.save_weights('/home/robster/catkin_ws/src/int_agents_project/data/actormodel_empty_01.h5', overwrite=True)
-                with open('/home/robster/catkin_ws/src/int_agents_project/data/actormodel_empty_01.json', 'w') as outfile:
+                actor.model.save_weights('/home/robin/catkin_ws/src/int_agents_project/data/actormodel_empty_01.h5', overwrite=True)
+                with open('/home/robin/catkin_ws/src/int_agents_project/data/actormodel_empty_01.json', 'w') as outfile:
                     json.dump(actor.model.to_json(), outfile)
                 
-                critic.model.save_weights('/home/robster/catkin_ws/src/int_agents_project/data/criticmodel_empty_01.h5', overwrite=True)
-                with open('/home/robster/catkin_ws/src/int_agents_project/data/criticmodel_empty_01.json', 'w') as outfile:
+                critic.model.save_weights('/home/robin/catkin_ws/src/int_agents_project/data/criticmodel_empty_01.h5', overwrite=True)
+                with open('/home/robin/catkin_ws/src/int_agents_project/data/criticmodel_empty_01.json', 'w') as outfile:
                     json.dump(critic.model.to_json(), outfile)
 
         loss_all[i] = total_loss
@@ -175,7 +179,7 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
         print('Total Step: ' + str(step))
         print('')
     
-    sio.savemat('/home/robster/catkin_ws/src/int_agents_project/data/eval_01.mat' , {'loss': loss_all, 'reward': reward_all})
+    sio.savemat('/home/robin/catkin_ws/src/int_agents_project/data/eval_01.mat' , {'loss': loss_all, 'reward': reward_all})
 
     # env.end()  # This is for shutting down TORCS
     print('Finished learning!')
