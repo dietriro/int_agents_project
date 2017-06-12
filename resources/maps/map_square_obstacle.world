@@ -3,7 +3,7 @@ include "turtlebot.inc"
 define topurg ranger
 (
   sensor(       
-    range [ 0.0  30.0 ]
+    range [ 0.0  10.0 ]
     fov 360
    samples 360
   )
@@ -54,14 +54,14 @@ floorplan
 (
   name "map_square_obstacle"
   bitmap "map_square_obstacle.png"
-  size [ 3.2 3.2 2.0 ]
-  pose [  1.6  1.6 0.0 0.0 ]
+  size [ 6.4 6.4 2.0 ]
+  pose [  3.2  3.2 0.0 0.0 ]
 )
 
 # throw in an erratic
 erratic
 (
-  pose [ 0.5 0.5 0.0 0.0 ]
+  pose [ 1.0 1.0 0.0 0.0 ]
   name "erratic"
   color "black"
 )

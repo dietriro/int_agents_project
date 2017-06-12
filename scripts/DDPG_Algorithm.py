@@ -27,11 +27,11 @@ OU = OU()  # Ornstein-Uhlenbeck Process
 
 def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
     BUFFER_SIZE = 100000
-    BATCH_SIZE = 8
-    GAMMA = 0.99
-    TAU = 0.02  # Target Network HyperParameters
-    LRA = 0.1  # Learning rate for Actor
-    LRC = 0.1  # Learning rate for Critic
+    BATCH_SIZE = 32
+    GAMMA = 0.5
+    TAU = 0.001  # Target Network HyperParameters
+    LRA = 0.0005  # Learning rate for Actor
+    LRC = 0.005  # Learning rate for Critic
     
     action_dim = 2  # cmd_vel in linear.x and angular.z
     state_dim = 365  # Map
@@ -40,9 +40,9 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
 
     vision = False
     
-    EXPLORE = 10000.
+    EXPLORE = 100000.
     episode_count = 100
-    max_steps = 500
+    max_steps = 800
     reward = 0
     done = False
     step = 0
@@ -65,11 +65,12 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
     
     # Generate a new stage environment
     # ToDo: add env
-    goals = np.array([[2.5, 1.5],
-                      [2.5, 0.5],
-                      [0.5, 2.5],
-                      [2.5, 2.5],
-                      [0.5, 1.5]])
+    goals = np.array([[5.0, 5.0],
+                      [5.0, 0.5],
+                      [1.5, 2.5],
+                      [2.5, 5.0],
+                      [3.0, 2.0]])
+    # goals = np.array([[5.0, 5.0]])
     env = SimulationEnvironment(goals[0])
 
     # Now load the weight
@@ -174,22 +175,24 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
         if np.mod(i, 3) == 0:
             if (train_indicator):
                 print('Now we save model')
-                actor.model.save_weights('/home/robin/catkin_ws/src/int_agents_project/data/actormodel_obst_01.h5', overwrite=True)
-                with open('/home/robin/catkin_ws/src/int_agents_project/data/actormodel_obst_01.json', 'w') as outfile:
+                actor.model.save_weights('/home/robin/catkin_ws/src/int_agents_project/data/actormodel_obst_02.h5', overwrite=True)
+                with open('/home/robin/catkin_ws/src/int_agents_project/data/actormodel_obst_02.json', 'w') as outfile:
                     json.dump(actor.model.to_json(), outfile)
                 
-                critic.model.save_weights('/home/robin/catkin_ws/src/int_agents_project/data/criticmodel_obst_01.h5', overwrite=True)
-                with open('/home/robin/catkin_ws/src/int_agents_project/data/criticmodel_obst_01.json', 'w') as outfile:
+                critic.model.save_weights('/home/robin/catkin_ws/src/int_agents_project/data/criticmodel_obst_02.h5', overwrite=True)
+                with open('/home/robin/catkin_ws/src/int_agents_project/data/criticmodel_obst_02.json', 'w') as outfile:
                     json.dump(critic.model.to_json(), outfile)
 
         loss_all[i] = total_loss
         reward_all[i] = total_reward
 
-        print('TOTAL REWARD @ ' + str(i) + '-th Episode  : Reward ' + str(total_reward))
-        print('Total Step: ' + str(step))
+        print('DATA @ ' + str(i) + '-th Episode  : Reward ' + str(total_reward))
+        print('Total Reward:     ' + str(total_reward))
+        print('Total Loss:       ' + str(total_loss))
+        print('Total Step:       ' + str(step))
         print('')
     
-    sio.savemat('/home/robin/catkin_ws/src/int_agents_project/data/eval_obst_01.mat' , {'loss': loss_all, 'reward': reward_all})
+    sio.savemat('/home/robin/catkin_ws/src/int_agents_project/data/eval_obst_02.mat' , {'loss': loss_all, 'reward': reward_all})
 
     # env.end()  # This is for shutting down TORCS
     print('Finished learning!')

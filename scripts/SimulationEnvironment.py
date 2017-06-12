@@ -222,7 +222,7 @@ class SimulationEnvironment:
     
         return state.reshape((1, state.shape[0])), self.get_reward(), self.close_to_goal()
         
-    def get_reward(self, d=8, a=4, v_back=2, range_threshold=0.5):
+    def get_reward(self, d=8, a=4, v_back=2, range_threshold=0.4):
         if self.scan is None or self.pose is None or self.goal is None:
             print('No messages received yet')
             return None
@@ -231,7 +231,7 @@ class SimulationEnvironment:
         reward = 0
         
         # Reward from distance to goal
-	#        print('pose: ', self.pose)
+        # print('pose: ', self.pose)
         # print('goal: ', self.goal)
         reward += d*1/euclidean(self.pose[:2], self.goal[:2])
         
@@ -254,6 +254,10 @@ class SimulationEnvironment:
         ranges = np.array(self.scan.ranges)
         short_ranges = range_threshold-ranges[ranges<range_threshold]
         reward += -np.sum(short_ranges)
+        
+        # Reward for goal reached
+        if self.close_to_goal():
+            reward += 100
         
         return reward
 
