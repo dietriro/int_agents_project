@@ -27,11 +27,11 @@ OU = OU()  # Ornstein-Uhlenbeck Process
 
 def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
     BUFFER_SIZE = 100000
-    BATCH_SIZE = 32
+    BATCH_SIZE = 8
     GAMMA = 0.99
     TAU = 0.02  # Target Network HyperParameters
-    LRA = 0.01  # Learning rate for Actor
-    LRC = 0.01  # Lerning rate for Critic
+    LRA = 0.1  # Learning rate for Actor
+    LRC = 0.1  # Learning rate for Critic
     
     action_dim = 2  # cmd_vel in linear.x and angular.z
     state_dim = 365  # Map
@@ -41,7 +41,7 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
     vision = False
     
     EXPLORE = 10000.
-    episode_count = 50
+    episode_count = 100
     max_steps = 500
     reward = 0
     done = False
@@ -65,9 +65,14 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
     
     # Generate a new stage environment
     # ToDo: add env
-    env = SimulationEnvironment(goal, map_state=False)
+    goals = np.array([[2.5, 1.5],
+                      [2.5, 0.5],
+                      [0.5, 2.5],
+                      [2.5, 2.5],
+                      [0.5, 1.5]])
+    env = SimulationEnvironment(goals[0])
 
-    # # Now load the weight
+    # Now load the weight
     # print('Now we load the weight')
     # try:
     #     actor.model.load_weights('actormodel.h5')
@@ -77,19 +82,20 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
     #     print('Weight load successfully')
     # except:
     #     print('Cannot find the weight')
-    
+
     print('RL of Robot begins...')
     for i in range(episode_count):
-        
+    
         print('Episode : ' + str(i) + ' Replay Buffer ' + str(buff.count()))
-        
+    
         env.reset()
-
-        sleep(2)
-        
-        env.step([0,0])
-
+    
+        sleep(0.5)
+    
+        env.step([0, 0])
+        env.set_goal(goals[i*goals.shape[0]/episode_count])
         (s_t, r_t, done) = env.get_state_reward_1d()
+
         total_loss = 0.
         total_reward = 0.
         for j in range(max_steps):
@@ -100,8 +106,8 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
 
             a_t_original = actor.model.predict(s_t)[0]
             
-            noise_t[0] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0], 0.0, 0.90, 0.30)
-            noise_t[1] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[1], 0.0, 0.90, 0.30)
+            noise_t[0] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[0], 0.0, 0.60, 0.30)
+            noise_t[1] = train_indicator * max(epsilon, 0) * OU.function(a_t_original[1], 0.0, 0.60, 0.30)
 
             # The following code do the stochastic brake
             # if random.random() <= 0.1:
@@ -113,9 +119,11 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
             a_t[0] = a_t_original[0] + noise_t[0]
             a_t[1] = a_t_original[1] + noise_t[1]
             
-            r = random.random()
-            if r < 0.3-i/episode_count:
-                a_t[0] = 0
+            # r = random.random()
+            # if r < 0.3-i/episode_count:
+            #     a_t[0] = 0
+            # elif r < 0.6- 2*(i/episode_count):
+            #     a_t[1] = 0
             
             env.step(a_t)
 
@@ -155,21 +163,23 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
             total_reward += r_t
             s_t = s_t1.copy()
             
-            print('Episode [%i]  Step [%i]  Pose [%.2f, %.2f, %.2f]  Action [%.2f, %.2f]  Reward [%.2f]  Loss [%.2f]' % (i, step, env.pose[0], env.pose[1], env.pose[2], a_t[0], a_t[1], r_t, loss))
+            print('Episode [%i]  Step [%i]  Goal [%.2f, %.2f]  Pose [%+.2f, %+.2f, %+.2f]  Action [%+.2f, %+.2f]  Reward [%+.2f]  Loss [%+.2f]\r' %
+                  (i, step, env.goal[0], env.goal[1], env.pose[0], env.pose[1], env.pose[2], a_t[0], a_t[1], r_t, loss))
             
             step += 1
             if done:
+                print('########### GOAL REACHED SUCCESSFULLY ############')
                 break
         
         if np.mod(i, 3) == 0:
             if (train_indicator):
                 print('Now we save model')
-                actor.model.save_weights('/home/robin/catkin_ws/src/int_agents_project/data/actormodel_empty_01.h5', overwrite=True)
-                with open('/home/robin/catkin_ws/src/int_agents_project/data/actormodel_empty_01.json', 'w') as outfile:
+                actor.model.save_weights('/home/robin/catkin_ws/src/int_agents_project/data/actormodel_obst_01.h5', overwrite=True)
+                with open('/home/robin/catkin_ws/src/int_agents_project/data/actormodel_obst_01.json', 'w') as outfile:
                     json.dump(actor.model.to_json(), outfile)
                 
-                critic.model.save_weights('/home/robin/catkin_ws/src/int_agents_project/data/criticmodel_empty_01.h5', overwrite=True)
-                with open('/home/robin/catkin_ws/src/int_agents_project/data/criticmodel_empty_01.json', 'w') as outfile:
+                critic.model.save_weights('/home/robin/catkin_ws/src/int_agents_project/data/criticmodel_obst_01.h5', overwrite=True)
+                with open('/home/robin/catkin_ws/src/int_agents_project/data/criticmodel_obst_01.json', 'w') as outfile:
                     json.dump(critic.model.to_json(), outfile)
 
         loss_all[i] = total_loss
@@ -179,7 +189,7 @@ def teach_robot(goal, train_indicator=1):  # 1 means Train, 0 means simply Run
         print('Total Step: ' + str(step))
         print('')
     
-    sio.savemat('/home/robin/catkin_ws/src/int_agents_project/data/eval_01.mat' , {'loss': loss_all, 'reward': reward_all})
+    sio.savemat('/home/robin/catkin_ws/src/int_agents_project/data/eval_obst_01.mat' , {'loss': loss_all, 'reward': reward_all})
 
     # env.end()  # This is for shutting down TORCS
     print('Finished learning!')

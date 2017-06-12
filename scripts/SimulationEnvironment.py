@@ -222,7 +222,7 @@ class SimulationEnvironment:
     
         return state.reshape((1, state.shape[0])), self.get_reward(), self.close_to_goal()
         
-    def get_reward(self, d=10, a=4, v_back=4, range_threshold=0.5):
+    def get_reward(self, d=8, a=4, v_back=2, range_threshold=0.5):
         if self.scan is None or self.pose is None or self.goal is None:
             print('No messages received yet')
             return None
@@ -243,7 +243,7 @@ class SimulationEnvironment:
         if angular_error > 0.5*np.pi:
             angular_error *= a
         # Add product of that with velocity direction
-        reward += 2 * np.pi - angular_error
+        reward += a/2 * np.pi - angular_error
         
         # Negative reward for driving backwards
         if self.last_action is not None and self.last_action.linear.x < 0:
@@ -256,3 +256,7 @@ class SimulationEnvironment:
         reward += -np.sum(short_ranges)
         
         return reward
+
+    def set_goal(self, goal):
+        self.goal = goal
+        self.map.set_goal(goal[:2])

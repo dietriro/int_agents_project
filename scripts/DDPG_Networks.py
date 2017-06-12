@@ -43,47 +43,15 @@ class ActorNetwork(object):
             actor_target_weights[i] = self.TAU * actor_weights[i] + (1 - self.TAU)* actor_target_weights[i]
         self.target_model.set_weights(actor_target_weights)
 
-    # def create_actor_network(self, state_size, action_dim=6):
-    #     print('Building Actor Network')
-    #
-    #     S = Input(shape=state_size)
-    #     # Convolutional Layers
-    #     # c0 = Conv2D(16, 3, 3, activation='relu')(S)
-    #     # p0 = MaxPooling2D(pool_size=(2, 2))(c0)
-    #     c1 = Conv2D(32, 3, 3, activation='relu')(S)
-    #     p1 = MaxPooling2D(pool_size=(2, 2))(c1)
-    #     c2 = Conv2D(64, 3, 3, activation='relu')(p1)
-    #     p2 = MaxPooling2D(pool_size=(2, 2))(c2)
-    #     d0 = Dropout(0.25)(p2)
-    #     f0 = Flatten()(d0)
-    #     # Fully Connected Layers
-    #     h0 = Dense(HIDDEN1_UNITS, activation='relu')(f0)
-    #     h1 = Dense(HIDDEN2_UNITS, activation='relu')(h0)
-    #
-    #     V = Dense(action_dim, activation='tanh')(h1)
-    #
-    #     model = Model(input=S, output=V)
-    #
-    #     return model, model.trainable_weights, S
-
     def create_actor_network(self, state_size, action_dim=6):
         print('Building Actor Network')
     
         S = Input(shape=[state_size])
-        # Convolutional Layers
-        # c0 = Conv2D(16, 3, 3, activation='relu')(S)
-        # p0 = MaxPooling2D(pool_size=(2, 2))(c0)
-        # c1 = Conv2D(32, 3, 3, activation='relu')(S)
-        # p1 = MaxPooling2D(pool_size=(2, 2))(c1)
-        # c2 = Conv2D(64, 3, 3, activation='relu')(p1)
-        # p2 = MaxPooling2D(pool_size=(2, 2))(c2)
-        # d0 = Dropout(0.25)(p2)
-        # f0 = Flatten()(d0)
-        # Fully Connected Layers
-        h0 = Dense(HIDDEN1_UNITS, activation='relu')(S)
-        h1 = Dense(HIDDEN2_UNITS, activation='relu')(h0)
+
+        h0 = Dense(HIDDEN1_UNITS, activation='relu', init='lecun_uniform')(S)
+        h1 = Dense(HIDDEN2_UNITS, activation='relu', init='lecun_uniform')(h0)
     
-        V = Dense(action_dim, activation='tanh')(h1)
+        V = Dense(action_dim, activation='tanh', init='lecun_uniform')(h1)
     
         model = Model(input=S, output=V)
     
@@ -123,25 +91,17 @@ class CriticNetwork(object):
         print('Building Critic Network')
 
         S = Input(shape=[state_size])
-        # Convolutional Layers for
-        # c0 = Conv2D(16, 3, 3, activation='relu')(S)
-        # p0 = MaxPooling2D(pool_size=(2, 2))(c0)
-        # c1 = Conv2D(32, 3, 3, activation='relu')(S)
-        # p1 = MaxPooling2D(pool_size=(2, 2))(c1)
-        # c2 = Conv2D(64, 3, 3, activation='relu')(p1)
-        # p2 = MaxPooling2D(pool_size=(2, 2))(c2)
-        # d0 = Dropout(0.25)(p2)
-        # f0 = Flatten()(d0)
+        
         # Fully Connected Layers
-        h0 = Dense(HIDDEN1_UNITS, activation='relu')(S)
-        h1 = Dense(HIDDEN2_UNITS, activation='relu')(h0)
+        h0 = Dense(HIDDEN1_UNITS, activation='relu', init='lecun_uniform')(S)
+        h1 = Dense(HIDDEN2_UNITS, activation='relu', init='lecun_uniform')(h0)
         
         A = Input(shape=[action_dim], name='action2')
-        a1 = Dense(HIDDEN2_UNITS, activation='relu')(A)
+        a1 = Dense(HIDDEN2_UNITS, activation='relu', init='lecun_uniform')(A)
         
         h2 = merge([h1, a1], mode='sum')
-        h3 = Dense(HIDDEN2_UNITS, activation='relu')(h2)
-        V = Dense(action_dim, activation='tanh')(h3)
+        h3 = Dense(HIDDEN2_UNITS, activation='relu', init='lecun_uniform')(h2)
+        V = Dense(action_dim, activation='tanh', init='lecun_uniform')(h3)
         
         model = Model(input=[S, A], output=V)
         
@@ -150,3 +110,4 @@ class CriticNetwork(object):
         model.compile(loss='mse', optimizer=adam)
         
         return model, A, S
+
